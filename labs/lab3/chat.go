@@ -1,5 +1,5 @@
 // Demonstration of channels with a chat application
-// Copyright © 2016 Alan A. A. Donovan & Brian W. Kernighan.
+// Copyright Â© 2016 Alan A. A. Donovan & Brian W. Kernighan.
 // License: https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 // Chat is a server that lets clients chat with each other.
@@ -11,9 +11,14 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 )
 
-type client chan<- string // an outgoing message channel
+// changed
+type client struct {
+	channel chan<- string // an outgoing message channel
+	name    string
+}
 
 var (
 	entering = make(chan client)
@@ -46,15 +51,22 @@ func broadcaster() {
 			// Broadcast incoming message to all
 			// clients' outgoing message channels.
 			for cli := range clients {
-				cli <- msg
+				cli.channel <- msg
 			}
 
 		case cli := <-entering:
 			clients[cli] = true
+			// changed
+			var online []string
+
+			for cList := range clients {
+				online = append(online, cList.name)
+			}
+			cli.channel <- fmt.Sprintf("%d clients connected: < %s >", len(clients), strings.Join(online, ", "))
 
 		case cli := <-leaving:
 			delete(clients, cli)
-			close(cli)
+			close(cli.channel)
 		}
 	}
 }
@@ -63,19 +75,36 @@ func handleConn(conn net.Conn) {
 	ch := make(chan string) // outgoing client messages
 	go clientWriter(conn, ch)
 
-	who := conn.RemoteAddr().String()
-	ch <- "You are " + who
-	messages <- who + " has arrived"
-	entering <- ch
-
+	var who string
+	// changed
+	var count bool = false
+	ch <- "say your name"
 	input := bufio.NewScanner(conn)
 	for input.Scan() {
-		messages <- who + ": " + input.Text()
+		if !count {
+
+			who = input.Text()
+			if who == "" {
+				ch <- "You are " + conn.RemoteAddr().String()
+				who = conn.RemoteAddr().String()
+			} else {
+				ch <- "You are " + who
+			}
+
+			messages <- who + " has arrived"
+
+			entering <- client{ch, who}
+
+			// testing: fmt.Println("here")
+		} else {
+			messages <- "[ " + who + "] " + ": " + input.Text()
+		}
+		count = true
 	}
 	// NOTE: ignoring potential errors from input.Err()
 
-	leaving <- ch
-	messages <- who + " has left"
+	leaving <- client{ch, who}
+	messages <- who + " has left" // changed
 	conn.Close()
 }
 
