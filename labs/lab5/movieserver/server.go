@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/arunravindran/cloudnativecourse/lab5-grpc/movieapi"
+	"github.com/Cre8tivity/CloudNative/CloudNative/labs/lab5/movieapi"
 	"google.golang.org/grpc"
 )
 
@@ -40,11 +40,34 @@ func (s *server) GetMovieInfo(ctx context.Context, in *movieapi.MovieRequest) (*
 		reply.Director = val[1]
 		cast := strings.Split(val[2], ",")
 		reply.Cast = append(reply.Cast, cast...)
-
 	}
+	return reply, nil
+}
+
+func (s *server) SetMovieInfo(ctx context.Context, in *movieapi.MovieRequest) (*movieapi.MovieReply, error) {
+	// initialize objects that we are querying
+	rtitle := in.GetTitle()
+	ryear := in.GetYear()
+	rdirector := in.GetDirector()
+	rcast := in.GetCast()
+
+	// initialize the reply
+	reply := &movieapi.MovieReply{}
+
+	if _, ok := moviedb[rtitle]; ok { // Title not present in database
+		return reply, nil
+	} else {
+		if year, err := strconv.Atoi(ryear); err != nil {
+			reply.Year = -1
+		} else {
+			reply.Year = int32(year)
+		}
+		reply.Director = rdirector
+		reply.Cast = rcast
+	}
+	moviedb[rtitle] = []string{ryear, rdirector, strings.Join(rcast, ", ")}
 
 	return reply, nil
-
 }
 
 func main() {
