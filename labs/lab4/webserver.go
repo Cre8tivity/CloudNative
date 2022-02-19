@@ -48,6 +48,7 @@ func (db *database) create(w http.ResponseWriter, req *http.Request) {
 	query := req.URL.Query()
 	item_list, check := query["item"]
 	price_list, checkP := query["price"]
+
 	if !check || len(item_list) > 1 {
 		fmt.Println("more than one item queried; undefined")
 	} else if len(item_list) == 0 {
@@ -58,10 +59,11 @@ func (db *database) create(w http.ResponseWriter, req *http.Request) {
 	} else if !checkP || len(price_list) == 0 {
 		fmt.Println("no price assiciated w item")
 	}
-
+	db.Lock()
 	if _, ok := db.db[item_list[0]]; !ok {
 		price, _ := strconv.ParseFloat(price_list[0], 32)
 		db.db[item_list[0]] = dollars(price)
+		db.Unlock()
 		fmt.Fprintf(w, ": %s added to database with value %s\n", item_list[0], dollars(price))
 	} else {
 		w.WriteHeader(http.StatusNotFound) // 404
@@ -77,9 +79,10 @@ func (db *database) delete(w http.ResponseWriter, req *http.Request) {
 	} else if len(item_list) == 0 {
 		fmt.Println("item not found")
 	}
-
+	db.Lock()
 	if _, ok := db.db[item_list[0]]; ok {
 		delete(db.db, item_list[0])
+		db.Unlock()
 		fmt.Fprintf(w, ": %s was deleted from db\n", item_list[0])
 	} else {
 		w.WriteHeader(http.StatusNotFound) // 404
@@ -101,10 +104,11 @@ func (db *database) update(w http.ResponseWriter, req *http.Request) {
 	} else if !checkP || len(price_list) == 0 {
 		fmt.Println("no price assiciated w item")
 	}
-
+	db.Lock()
 	if _, ok := db.db[item_list[0]]; ok {
 		price, _ := strconv.ParseFloat(price_list[0], 32)
 		db.db[item_list[0]] = dollars(price)
+		db.Unlock()
 		fmt.Fprintf(w, ": %s updated in database with value %s\n", item_list[0], dollars(price))
 	} else {
 		w.WriteHeader(http.StatusNotFound) // 404
