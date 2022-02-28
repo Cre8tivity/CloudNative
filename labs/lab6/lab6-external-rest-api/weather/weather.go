@@ -13,12 +13,15 @@ import (
 type Temperature float64
 
 func (t Temperature) Fahrenheit() float64 {
-	return (float64(t) - 273.15)*(9.0/5.0) + 32.0
+	return (float64(t)-273.15)*(9.0/5.0) + 32.0
 }
 
 type Conditions struct {
 	Summary     string
 	Temperature Temperature
+	Pressure    int64
+	Humidity    int64
+	WindSpeed   float64
 }
 
 type OWMResponse struct {
@@ -26,7 +29,12 @@ type OWMResponse struct {
 		Main string
 	}
 	Main struct {
-		Temp Temperature
+		Temp     Temperature
+		Pressure int64
+		Humidity int64
+	}
+	Wind struct {
+		Speed float64
 	}
 }
 
@@ -87,6 +95,9 @@ func ParseResponse(data []byte) (Conditions, error) {
 	conditions := Conditions{
 		Summary:     resp.Weather[0].Main,
 		Temperature: resp.Main.Temp,
+		Pressure:    resp.Main.Pressure,
+		Humidity:    resp.Main.Humidity,
+		WindSpeed:   resp.Wind.Speed,
 	}
 	return conditions, nil
 }
@@ -110,6 +121,13 @@ func RunCLI() {
 		os.Exit(1)
 	}
 	location := os.Args[1]
+
+	/*for _, e := range os.Environ() {
+
+		pair := strings.SplitN(e, "=", 2)
+		fmt.Printf("%s: %s\n", pair[0], pair[1])
+	}*/
+
 	key := os.Getenv("OPENWEATHERMAP_API_KEY")
 	if key == "" {
 		fmt.Fprintln(os.Stderr, "Please set the environment variable OPENWEATHERMAP_API_KEY")

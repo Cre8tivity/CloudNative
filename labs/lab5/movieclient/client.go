@@ -49,7 +49,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not get movie info: %v", err)
 	}
-	log.Printf("Added Movie Info for %s: %d %s %v\n", title2, r2.GetYear(), r2.GetDirector(), r2.GetCast())
+	log.Printf("Set Movie Info for %s: %d %s %v\n", title2, r2.GetYear(), r2.GetDirector(), r2.GetCast())
 
 	r3, err := c.GetMovieInfo(ctx, &movieapi.MovieRequest{Title: title2})
 	if err != nil {
