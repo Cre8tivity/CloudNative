@@ -1,4 +1,4 @@
-module github.com/Cre8tivity/CloudNative/labs/lab7
+module github.com/Cre8tivity/CloudNative/labs/lab7/lab5COPY
 
 go 1.17
 
