@@ -3,12 +3,12 @@ package main
 
 import (
 	"context"
+	"lab5COPY/main/movieapi"
 	"log"
 	"net"
 	"strconv"
 	"strings"
 
-	"github.com/Cre8tivity/CloudNative/labs/lab7/lab5COPY/movieapi"
 	"google.golang.org/grpc"
 )
 
