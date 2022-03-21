@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	mongodbEndpoint = "mongodb://172.17.0.3:27017" // Find this from the Mongo container
+	mongodbEndpoint = "mongodb://0.0.0.0:27017" // Find this from the Mongo container
 )
 
 type Post struct {
@@ -63,7 +63,6 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("post: %+v\n", p)
-
 }
 
 func checkError(err error) {
