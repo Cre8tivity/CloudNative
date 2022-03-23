@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	mongodbEndpoint = "mongodb://0.0.0.0:27017" // Find this from the Mongo container
+	mongodbEndpoint = /*"mongodb://0.0.0.0:27017"*/ "mongodb://172.17.0.2:27017" // Find this from the Mongo container
 )
 
 type item struct {
@@ -37,6 +37,7 @@ type database struct {
 	sync.Mutex
 	db   *mongo.Collection
 	cntx context.Context
+	canc context.CancelFunc
 }
 
 func main() {
@@ -44,17 +45,15 @@ func main() {
 		options.Client().ApplyURI(mongodbEndpoint),
 	)
 	checkError(err)
-
-	ctx, canc := context.WithTimeout(context.Background(), 1500*time.Second)
-	err = client.Connect(ctx)
-	// disconnect from db when main returns
-	defer canc()
-	defer client.Disconnect(ctx)
-
 	// select collection from database
 	col := client.Database("blog").Collection("posts")
+	db := database{db: col}
 
-	db := database{db: col, cntx: ctx}
+	db.cntx, db.canc = context.WithTimeout(context.Background(), 1500*time.Second)
+	err = client.Connect(db.cntx)
+	// disconnect from db when main returns
+	defer db.canc()
+	defer client.Disconnect(db.cntx)
 	checkError(err)
 
 	mux := http.NewServeMux()
@@ -63,8 +62,7 @@ func main() {
 	mux.HandleFunc("/create", db.create)
 	mux.HandleFunc("/delete", db.delete)
 	mux.HandleFunc("/update", db.update)
-	log.Fatal(http.ListenAndServe("localhost:8000", mux))
-
+	log.Fatal(http.ListenAndServe(":8000", mux))
 }
 
 func checkError(err error) {
@@ -144,12 +142,13 @@ func (db *database) update(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	filter := bson.M{"item": bson.M{"$elemMatch": bson.M{"$eq": item_list[0]}}}
-	update := bson.M{"$set": bson.M{"price": price_list[0]}}
-	update_t := bson.M{"$set": bson.M{"updated_at": time.Now()}}
+	//bson.M{"$set": bson.M{"price": price_list[0]}}
 	var i item
 	var err error
 	price, _ := strconv.ParseFloat(price_list[0], 32)
+
+	filter := bson.M{"item": bson.M{"$elemMatch": bson.M{"$eq": item_list[0]}}}
+	// update := bson.M{"$set": bson.M{"price": price_list[0]}}
 
 	db.Lock()                                                                         // lock db to access db
 	if err = db.db.FindOne(db.cntx, filter).Decode(&i); err != mongo.ErrNoDocuments { // if not in db
@@ -158,12 +157,20 @@ func (db *database) update(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(w, "item doesn't exist in database\n")
 	} else { // if already in db
 		checkError(err)
-		_, err := db.db.UpdateOne(db.cntx, filter, update)
+		// _, err := db.db.UpdateOne(db.cntx, filter, update)
+		t := i.CreatedAt
+		_, err := db.db.DeleteOne(db.cntx, bson.M{"item": item_list[0]})
+		_, err2 := db.db.InsertOne(db.cntx, &item{
+			ID:        primitive.NewObjectID(),
+			Item:      item_list[0],
+			Price:     float32(price),
+			CreatedAt: t,
+			UpdatedAt: time.Now(),
+		})
 		db.Unlock()
 		checkError(err)
-		_, err2 := db.db.UpdateOne(db.cntx, filter, update_t)
 		checkError(err2)
-		fmt.Fprintf(w, ": %s added to database with value %s\n", item_list[0], dollars(price))
+		fmt.Fprintf(w, ": %s updated in database with value %+v\n", item_list[0], dollars(price))
 	}
 }
 
@@ -201,20 +208,17 @@ func (db *database) create(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Println("here0")
 	filter := bson.M{"item": bson.M{"$elemMatch": bson.M{"$eq": item_list[0]}}}
 	var i item
 	var err error
 	price, _ := strconv.ParseFloat(price_list[0], 32)
-	db.Lock() // lock db to access db
-	fmt.Println("here1")
+
+	db.Lock()                                                                         // lock db to access db
 	if err = db.db.FindOne(db.cntx, filter).Decode(&i); err != mongo.ErrNoDocuments { // if not in db
-		fmt.Println("here2")
 		w.WriteHeader(http.StatusNotFound) // 404
 		fmt.Fprintf(w, "item already exists in database\n")
 		checkError(err)
 	} else { // if already in db
-		fmt.Println("here3")
 		res, err := db.db.InsertOne(db.cntx, &item{
 			ID:        primitive.NewObjectID(),
 			Item:      item_list[0],
