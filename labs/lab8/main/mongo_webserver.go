@@ -85,11 +85,14 @@ func checkError(err error) {
 func (db *database) delete(w http.ResponseWriter, req *http.Request) {
 	query := req.URL.Query()
 	item_list, check := query["item"]
+
 	if !check || len(item_list) > 1 {
-		fmt.Println("more than one item queried; undefined")
+		fmt.Println("[LOG]: more than one item queried; undefined")
+		fmt.Fprintf(w, "[SERVER]: more than one item queried; undefined")
 		return
 	} else if len(item_list) == 0 {
-		fmt.Println("item not found")
+		fmt.Println("[LOG]: item not found")
+		fmt.Fprintf(w, "[SERVER]: item not found")
 		return
 	}
 
@@ -99,12 +102,14 @@ func (db *database) delete(w http.ResponseWriter, req *http.Request) {
 	db.Lock()
 	if err = db.db.FindOne(db.cntx, filter).Decode(&i); err != mongo.ErrNoDocuments {
 		w.WriteHeader(http.StatusNotFound) // 404
-		fmt.Fprintf(w, "item doesn't exist in database\n")
+		fmt.Fprintf(w, "[SERVER]: item doesn't exist in database\n")
+		fmt.Printf("[LOG]: item doesn't exist in database\n")
 	} else {
 		_, err := db.db.DeleteOne(db.cntx, bson.M{"item": item_list[0]}) // delete function
 		db.Unlock()
 		checkError(err)
-		fmt.Fprintf(w, ": %s was deleted from db\n", item_list[0])
+		fmt.Fprintf(w, "[SERVER]: %s was deleted from db\n", item_list[0])
+		fmt.Printf("[LOG]: %s was deleted from db\n", item_list[0])
 	}
 }
 
@@ -128,17 +133,21 @@ func (db *database) update(w http.ResponseWriter, req *http.Request) {
 	price_list, checkP := query["price"]
 
 	if !check || len(item_list) > 1 {
-		fmt.Println("more than one item queried; undefined")
+		fmt.Println("[LOG]: more than one item queried; undefined")
+		fmt.Fprintf(w, "[SERVER]: more than one item queried; undefined")
 		return
 	} else if len(item_list) == 0 {
-		fmt.Println("item not found")
+		fmt.Println("[LOG]: item not found")
+		fmt.Fprintf(w, "[SERVER]: item not found")
 		return
 	}
-	if !checkP || len(item_list) > 1 {
-		fmt.Println("more than one price queried; undefined")
+	if !checkP || len(price_list) > 1 {
+		fmt.Println("[LOG]: more than one price queried; undefined")
+		fmt.Fprintf(w, "[SERVER]: more than one price queried; undefined")
 		return
 	} else if !checkP || len(price_list) == 0 {
-		fmt.Println("no price assiciated w item")
+		fmt.Println("[LOG]: no price assiciated w item")
+		fmt.Fprintf(w, "[SERVER]: no price assiciated w item")
 		return
 	}
 
@@ -154,7 +163,8 @@ func (db *database) update(w http.ResponseWriter, req *http.Request) {
 	if err = db.db.FindOne(db.cntx, filter).Decode(&i); err != mongo.ErrNoDocuments { // if not in db
 		w.WriteHeader(http.StatusNotFound) // 404
 		checkError(err)
-		fmt.Fprintf(w, "item doesn't exist in database\n")
+		fmt.Printf("[LOG]: item doesn't exist in database\n")
+		fmt.Fprintf(w, "[SERVER]: item doesn't exist in database\n")
 	} else { // if already in db
 		checkError(err)
 		// _, err := db.db.UpdateOne(db.cntx, filter, update)
@@ -170,7 +180,8 @@ func (db *database) update(w http.ResponseWriter, req *http.Request) {
 		db.Unlock()
 		checkError(err)
 		checkError(err2)
-		fmt.Fprintf(w, ": %s updated in database with value %+v\n", item_list[0], dollars(price))
+		fmt.Printf("[LOG]: %s updated in database with value %.2f\n", item_list[0], dollars(price))
+		fmt.Fprintf(w, "[SERVER]: %s updated in database with value %.2f\n", item_list[0], dollars(price))
 	}
 }
 
@@ -181,10 +192,11 @@ func (db *database) price(w http.ResponseWriter, req *http.Request) {
 	filter := bson.M{"item": bson.M{"$elemMatch": bson.M{"$eq": itemq}}}
 	if err = db.db.FindOne(db.cntx, filter).Decode(&i); err != mongo.ErrNoDocuments {
 		w.WriteHeader(http.StatusNotFound) // 404
-		fmt.Fprintf(w, "no such item: %q\n", itemq)
+		fmt.Fprintf(w, "[SERVER]: no such item: %q\n", itemq)
+		fmt.Printf("[SERVER]: no such item: %q\n", itemq)
 	} else {
-		fmt.Fprintf(w, "%s\n", dollars(i["price"].(float32)))
-		fmt.Printf(": Price Request for %s", itemq)
+		fmt.Fprintf(w, "[SERVER]: Price is %s\n", dollars(i["price"].(float32)))
+		fmt.Printf("[LOG]: Price Request for %s", itemq)
 	}
 }
 
@@ -194,17 +206,21 @@ func (db *database) create(w http.ResponseWriter, req *http.Request) {
 	price_list, checkP := query["price"]
 
 	if !check || len(item_list) > 1 {
-		fmt.Println("more than one item queried; undefined")
+		fmt.Println("[LOG]: more than one item queried; undefined")
+		fmt.Fprintf(w, "[SERVER]: more than one item queried; undefined")
 		return
 	} else if len(item_list) == 0 {
-		fmt.Println("item not found")
+		fmt.Println("[LOG]: item not found")
+		fmt.Fprintf(w, "[SERVER]: item not found")
 		return
 	}
-	if !checkP || len(item_list) > 1 {
-		fmt.Println("more than one price queried; undefined")
+	if !checkP || len(price_list) > 1 {
+		fmt.Println("[LOG]: more than one price queried; undefined")
+		fmt.Fprintf(w, "[SERVER]: more than one price queried; undefined")
 		return
 	} else if !checkP || len(price_list) == 0 {
-		fmt.Println("no price assiciated w item")
+		fmt.Println("[LOG]: no price assiciated w item")
+		fmt.Fprintf(w, "[SERVER]: no price assiciated w item")
 		return
 	}
 
@@ -216,7 +232,8 @@ func (db *database) create(w http.ResponseWriter, req *http.Request) {
 	db.Lock()                                                                         // lock db to access db
 	if err = db.db.FindOne(db.cntx, filter).Decode(&i); err != mongo.ErrNoDocuments { // if not in db
 		w.WriteHeader(http.StatusNotFound) // 404
-		fmt.Fprintf(w, "item already exists in database\n")
+		fmt.Fprintf(w, "[SERVER]: item already exists in database\n")
+		fmt.Printf("[LOG]: item already exists in database\n")
 		checkError(err)
 	} else { // if already in db
 		res, err := db.db.InsertOne(db.cntx, &item{
@@ -228,7 +245,8 @@ func (db *database) create(w http.ResponseWriter, req *http.Request) {
 		})
 		checkError(err)
 		db.Unlock()
-		fmt.Printf("inserted object id: %s\n", res.InsertedID.(primitive.ObjectID).Hex())
-		fmt.Fprintf(w, ": %s added to database with value %s\n", item_list[0], dollars(price))
+		fmt.Printf("[LOG]: inserted object id: %s\n", res.InsertedID.(primitive.ObjectID).Hex())
+		fmt.Fprintf(w, "[SERVER]: %s added to database with value %s\n", item_list[0], dollars(price))
+		fmt.Printf("[LOG]: %s added to database with value %s\n", item_list[0], dollars(price))
 	}
 }
