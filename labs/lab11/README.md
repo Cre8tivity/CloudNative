@@ -3,7 +3,7 @@
 ## Instruction 
 
 ## 1.Docker
-$minikube start 
+$microk8s start 
 
 $docker build -t mdang4/kubec-app .
 
@@ -23,7 +23,7 @@ $kubectl get pods
 
 $kubectl get svc
 
-$kubectl expose deployment my-kubec-app --type=NodePort --name=kubec-app-svc --target-port=8080
+$kubectl expose deployment my-kubec-app --type=NodePort --name=kubec-app-svc --target-port=8000
 
 $export NODE_PORT=$(kubectl get services/kubec-app-svc -o go-template='{{(index .spec.ports 0).nodePort}}'); echo NODE_PORT=$NODE_PORT
 
@@ -39,5 +39,5 @@ $kubectl get svc
 
 $minikube-ip:nodePort
 
--curl "http://192.168.64.7:32526/list?"
+-curl "http://$NODE_IP:$NODE_PORT/list?"
 
