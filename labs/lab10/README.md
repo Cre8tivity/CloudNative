@@ -22,11 +22,13 @@ $export NODE_PORT=$(kubectl get services/kubec-app-svc -o go-template='{{(index 
 $export NODE_IP=$(kubectl describe nodes | grep InternalIP | awk '{print $2}');echo
 
 $minikube ip
-192.168.64.7
+-192.168.64.7
 
 $kubectl get svc
-EX: 8080:32526/TCP
+
+-EX: 8080:32526/TCP
 
 $minikube-ip:nodePort
-curl "http://192.168.64.7:32526/list?"
+
+-curl "http://192.168.64.7:32526/list?"
 
